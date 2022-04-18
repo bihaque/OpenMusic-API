@@ -28,7 +28,7 @@ class SongsService {
   }
 
   async getSongs() {
-    const result = await this._pool.query('SELECT * FROM songs');
+    const result = await this._pool.query('SELECT id, title, performer FROM songs');
     return result.rows;
   }
 
@@ -50,7 +50,7 @@ class SongsService {
     title, year, genre, performer, duration, albumId,
   }) {
     const query = {
-      text: 'UPDATE songs SET title = $2, year = $3, genre = $4, performer = $5, duration = $6, albumId: $7 WHERE id=$1 RETURNING id',
+      text: 'UPDATE songs SET title = $2, year = $3, genre = $4, performer = $5, duration = $6, "albumId" = $7 WHERE id=$1 RETURNING id',
       values: [id, title, year, genre, performer, duration, albumId],
     };
 
