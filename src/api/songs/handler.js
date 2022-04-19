@@ -26,7 +26,7 @@ class SongsHandler {
 
       const response = h.response({
         status: 'success',
-        message: 'Song berhasil ditambahkan',
+        message: 'Song successfully added!',
         data: {
           songId,
         },
@@ -45,7 +45,7 @@ class SongsHandler {
 
       const response = h.response({
         status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.',
+        message: 'oops, Sorry! Problem encountered in our server. We\'ll fix this ASAP.',
       });
       response.code(500);
       console.error(error);
@@ -75,7 +75,7 @@ class SongsHandler {
 
       const response = h.response({
         status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.',
+        message: 'oops, Sorry! Problem encountered in our server. We\'ll fix this ASAP.',
       });
       response.code(500);
       console.error(error);
@@ -105,7 +105,7 @@ class SongsHandler {
 
       const response = h.response({
         status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.',
+        message: 'oops, Sorry! Problem encountered in our server. We\'ll fix this ASAP.',
       });
       response.code(500);
       console.error(error);
@@ -116,18 +116,13 @@ class SongsHandler {
   async putSongByIdHandler(request, h) {
     try {
       this._validator.validateSongPayload(request.payload);
-      const {
-        title, year, genre, performer, duration, albumId,
-      } = request.payload;
       const { id } = request.params;
 
-      await this._service.editSongById(id, {
-        title, year, genre, performer, duration, albumId,
-      });
+      await this._service.editSongById(id, request.payload);
 
       return {
         status: 'success',
-        message: 'Song berhasil diperbarui',
+        message: 'Song succesfully updated!',
       };
     } catch (error) {
       if (error instanceof ClientError) {
@@ -141,7 +136,7 @@ class SongsHandler {
 
       const response = h.response({
         status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.',
+        message: 'oops, Sorry! Problem encountered in our server. We\'ll fix this ASAP.',
       });
       response.code(500);
       console.error(error);
@@ -155,7 +150,7 @@ class SongsHandler {
       await this._service.deleteSongById(id);
       return {
         status: 'success',
-        message: 'Song berhasil dihapus',
+        message: 'Song successfully deleted!',
       };
     } catch (error) {
       if (error instanceof ClientError) {
@@ -169,7 +164,7 @@ class SongsHandler {
 
       const response = h.response({
         status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.',
+        message: 'oops, Sorry! Problem encountered in our server. We\'ll fix this ASAP.',
       });
       response.code(500);
       console.error(error);
