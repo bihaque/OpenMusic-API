@@ -2,6 +2,7 @@ const { nanoid } = require('nanoid');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const InvariantError = require('../../exceptions/InvariantError');
+const AuthenticationError = require('../../exceptions/AuthenticationError');
 
 class UsersService {
   constructor() {
@@ -21,7 +22,7 @@ class UsersService {
     const result = await this._pool.query(query);
 
     if (!result.rowCount) {
-      throw new InvariantError('User gagal ditambahkan');
+      throw new InvariantError('Failed to add user!');
     }
     return result.rows[0].id;
   }
@@ -34,9 +35,31 @@ class UsersService {
 
     const result = await this._pool.query(query);
 
-    if (result.rows.length > 0) {
-      throw new InvariantError('Gagal menambahkan user. Username sudah digunakan.');
+    if (result.rowCount > 0) {
+      throw new InvariantError('Failed to add user! username already exists.');
     }
+  }
+
+  async verifyUserCredential(username, password) {
+    const query = {
+      text: 'SELECT id, password FROM users WHERE username = $1',
+      values: [username],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rowCount) {
+      throw new AuthenticationError('Invalid credential!');
+    }
+
+    const { id, password: hashedPassword } = result.rows[0];
+    const match = await bcrypt.compare(password, hashedPassword);
+
+    if (!match) {
+      throw new AuthenticationError('Invalid credential!');
+    }
+
+    return id;
   }
 }
 
