@@ -2,14 +2,18 @@
 
 /* eslint-disable no-underscore-dangle */
 class AlbumsHandler {
-  constructor(service, validator) {
+  constructor(service, storageService, validator) {
     this._service = service;
+    this._storageService = storageService;
     this._validator = validator;
 
     this.postAlbumHandler = this.postAlbumHandler.bind(this);
     this.getAlbumByIdHandler = this.getAlbumByIdHandler.bind(this);
     this.putAlbumByIdHandler = this.putAlbumByIdHandler.bind(this);
     this.deleteAlbumByIdHandler = this.deleteAlbumByIdHandler.bind(this);
+    this.postUploadAlbumCoverHandler = this.postUploadAlbumCoverHandler.bind(this);
+    this.postAlbumLikesHandler = this.postAlbumLikesHandler.bind(this);
+    this.getAlbumLikesHandler = this.getAlbumLikesHandler.bind(this);
   }
 
   async postAlbumHandler(request, h) {
@@ -61,6 +65,52 @@ class AlbumsHandler {
       status: 'success',
       message: 'Album successfully deleted!',
     };
+  }
+
+  async postUploadAlbumCoverHandler(request, h) {
+    const { cover } = request.payload;
+    const { id } = request.params;
+    this._validator.validateImageHeaders(cover.hapi.headers);
+
+    const filename = await this._storageService.writeFile(cover, cover.hapi);
+    const coverUrl = `http://${process.env.HOST}:${process.env.PORT}/upload/images/${filename}`;
+
+    await this._service.addCoverAlbum(id, coverUrl);
+    const response = h.response({
+      status: 'success',
+      message: 'Cover uploaded!',
+    });
+    response.code(201);
+    return response;
+  }
+
+  async postAlbumLikesHandler(request, h) {
+    const { id: credentialId } = request.auth.credentials;
+    const { id } = request.params;
+
+    const message = await this._service.addAlbumLikes(id, credentialId);
+
+    const response = h.response({
+      status: 'success',
+      message,
+    });
+    response.code(201);
+    return response;
+  }
+
+  async getAlbumLikesHandler(request, h) {
+    const { id } = request.params;
+
+    const { likes, isCache } = await this._service.getAlbumLikes(id);
+
+    return h
+      .response({
+        status: 'success',
+        data: {
+          likes,
+        },
+      })
+      .header('X-Data-Source', isCache ? 'cache' : 'db');
   }
 }
 

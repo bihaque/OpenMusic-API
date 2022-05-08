@@ -2,3 +2,4 @@
 .prod.env
 node_modules
 OpenMusic-API-v1.zip
+src/api/albums/file

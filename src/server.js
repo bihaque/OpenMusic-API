@@ -2,6 +2,8 @@ require('dotenv').config();
 
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
+const Inert = require('@hapi/inert');
+const path = require('path');
 
 const albums = require('./api/albums');
 const AlbumsService = require('./services/postgres/AlbumsService');
@@ -26,12 +28,26 @@ const AuthenticationsService = require('./services/postgres/AuthenticationsServi
 const TokenManager = require('./tokenize/TokenManager');
 const AuthenticationsValidator = require('./validator/authentications');
 
+const collaboration = require('./api/collaboration');
+const CollaborationService = require('./services/postgres/CollaborationService');
+const CollaborationValidator = require('./validator/collaboration');
+
+const CacheService = require('./services/redis/CacheService');
+const StorageService = require('./services/storage/StorageService');
+
+const _exports = require('./api/exports');
+const ProducerService = require('./services/rabbitmq/ProducerService');
+const ExportValidator = require('./validator/exports');
+
 const init = async () => {
-  const albumsService = new AlbumsService();
+  const cacheService = new CacheService();
+  const storageService = new StorageService(path.resolve(__dirname, 'api/albums/file/images'));
+  const albumsService = new AlbumsService(cacheService);
   const songsService = new SongsService();
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
-  const playlistsService = new PlaylistsService();
+  const collaborationService = new CollaborationService();
+  const playlistsService = new PlaylistsService(collaborationService, cacheService);
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -46,6 +62,9 @@ const init = async () => {
   await server.register([
     {
       plugin: Jwt,
+    },
+    {
+      plugin: Inert,
     },
   ]);
 
@@ -70,6 +89,7 @@ const init = async () => {
       plugin: albums,
       options: {
         service: albumsService,
+        storageService,
         validator: AlbumsValidator,
       },
     },
@@ -104,6 +124,23 @@ const init = async () => {
         validator: AuthenticationsValidator,
       },
     },
+    {
+      plugin: collaboration,
+      options: {
+        collaborationService,
+        playlistsService,
+        usersService,
+        validator: CollaborationValidator,
+      },
+    },
+    {
+      plugin: _exports,
+      options: {
+        producerService: ProducerService,
+        playlistsService,
+        validator: ExportValidator,
+      },
+    },
   ]);
 
   server.ext('onPreResponse', (request, h) => {
@@ -124,7 +161,7 @@ const init = async () => {
       message: 'oops, Sorry! Problem encountered in our server. We\'ll fix this ASAP.',
     });
     newResponse.code(500);
-    console.log(Error);
+    console.error(Error);
     // jika bukan ClientError, lanjutkan dengan response sebelumnya (tanpa terintervensi)
     return response.continue || response;
   });
